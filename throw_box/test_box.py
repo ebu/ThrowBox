@@ -39,7 +39,6 @@ class GenericBox(object):
         self.directory = tempfile.mkdtemp()
         self.set_vagrant_env(template)
         self.vagrant_slave = vagrant.Vagrant()
-        self.output = []
 
     def set_vagrant_env(self, vagrant_template):
         """Set the vagrant file
