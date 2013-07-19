@@ -8,14 +8,15 @@ VAGRANT_FILENAME = "Vagrantfile"
 celery = Celery('tasks', broker='amqp://guest@localhost//')
 
 @celery.task
-def test_job(pre, test, post, template):
+def test_job(pre, test, post, template, github_url):
     """Launch a new test job.
     """
-    b = GenericBox(pre, test, post, "", template)
+    b = GenericBox(pre, test, post, github_url, template)
     try:
         b.up()
-        b.run_pre()
-        b.run_tests()
+        b.setup()
+        b.test()
+        b.deploy()
     except Exception as e:
         print(e)
     finally:

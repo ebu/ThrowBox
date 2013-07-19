@@ -9,10 +9,9 @@ import config
 
 from collections import namedtuple
 
-"""tuple that host the result of a single test run.
+"""Tuple that host the result of a single test run.
 """
 TestResult = namedtuple("TestResult", ['test', 'exit_code', 'success'])
-
 
 class GenericBox(object):
     """This class is a abstract box. It handles:
@@ -20,7 +19,7 @@ class GenericBox(object):
     * The run of the scripts in the vm.
     * The teardown of the vm used to run the script.
     """
-    def __init__(self, pre, tests, post, github_url, template):
+    def __init__(self, setup_scripts, test_scripts, deploy_scripts, github_url, template):
         """Construct a new box definition. This method will only create a new
         vagrant environment. All the scripts are list of string, each entry being
         a shell command sh compatible.
@@ -29,17 +28,18 @@ class GenericBox(object):
         @param tests: A list of script to run. They act as the test of the softwar
         @param post: A list of script to run after the build is complete. This can be used to
                      distribute or package the software.
-        @param github_url: The github url. This will be cloned at the beginning of the script
+        @param github_url: The github url of the tested repo. This will be cloned at the beginning 
+                           of the script
         @param template: A string matching the template you wanna use cf. set_vagrant_env.
         """
-        self.pre = pre
-        self.post = post
-        self.tests = tests
+        self.setup_scripts = setup_scripts
+        self.test_scripts = test_scripts
+        self.deploy_scripts = deploy_scripts
         self.test_results = []
         self.directory = tempfile.mkdtemp()
-        os.chdir(self.directory)
         self.set_vagrant_env(template)
-        self.v = vagrant.Vagrant()
+        self.vagrant_slave = vagrant.Vagrant()
+        self.output = []
 
     def set_vagrant_env(self, vagrant_template):
         """Set the vagrant file
@@ -52,27 +52,28 @@ class GenericBox(object):
         abs_template_file = os.path.join(config.VAGRANT_TEMPLATE_DIR, vagrant_template)
         abs_vagrant_file = os.path.join(self.directory, "Vagrantfile")
         shutil.copyfile(abs_template_file, abs_vagrant_file)
+        os.chdir(self.directory)
 
     def up(self):
         """Start the vagrant box.
         """
-        self.v.up()
-        while self.v.status() != 'running':
-            print(self.v.status())
+        self.vagrant_slave.up()
+        while self.vagrant_slave.status() != 'running':
+            print(self.vagrant_slave.status())
             sleep(1)
-        env.hosts = [self.v.user_hostname_port()]
-        env.key_filename = self.v.keyfile()
+        env.hosts = [self.vagrant_slave.user_hostname_port()]
+        env.key_filename = self.vagrant_slave.keyfile()
 
-    def run_tests(self):
+    def test(self):
         """Run each line of self.tests.
         """
         @task 
         def test_runner(test):
             """run a singleTest, return the result.
             @param test: A string representing the sh command.
-            @return :A TestResult namedtuple. cf. 
+            @return :A TestResult namedtuple. cf. TestResult
             """
-            result = run(test, warn_only=True)
+            result = self.run(test, warn_only=True)
             return TestResult(test, result.return_code, result.succeeded)
 
         @task
@@ -86,10 +87,8 @@ class GenericBox(object):
                 self.test_results.append(result)
 
         execute(run_tests, self.tests)
-        #test_results
-        print self.test_results
 
-    def run_pre(self):
+    def setup(self):
         """Run the setup scripts, abort if any error occurs
         """
         @task
@@ -98,10 +97,10 @@ class GenericBox(object):
             @param commands: A list of string 
             """
             for command in commands:
-                run(command)
+                self.run(command)
         execute(run_pre, self.pre)
 
-    def run_post(self):
+    def deploy(self):
         """Run the post test scripts, continue on error
         """
         @task
@@ -110,13 +109,22 @@ class GenericBox(object):
             @param commands: A list of string 
             """
             for command in commands:
-                run(command, warn_only=True)
+                self.run(command, warn_only=True)
+
+    def run(*args, **kwargs):
+        """a run wrapper that append the output of the command 
+        and the command to the self.output list
+        @param command:
+        """
+        #stdout = StringIO()
+        #stderr = StringIO()
+        run(*args, **kwargs)
 
     def destroy(self):
         """Destroy the box
         """
         try:
-            self.v.destroy()
+            self.vagrant_slave.destroy()
         except Exception as e:
             #pretty bad thing just append
             logging.error("Issue while destroying the box, {!s}".format(e))
