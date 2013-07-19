@@ -1,4 +1,5 @@
-from test_box import Box
+from test_box import GenericBox
+import os
 from celery import Celery
 import config
 
@@ -8,11 +9,13 @@ celery = Celery('tasks', broker='amqp://guest@localhost//')
 
 @celery.task
 def test_job(pre, test, post, template):
-    b = Box(pre, test, post, "", template)
+    """Launch a new test job.
+    """
+    b = GenericBox(pre, test, post, "", template)
     try:
         b.up()
         b.run_pre()
-        b.run_test()
+        b.run_tests()
     except Exception as e:
         print(e)
     finally:
@@ -21,4 +24,6 @@ def test_job(pre, test, post, template):
 
 @celery.task
 def list_box():
-    return config.VAGRANT_TEMPLATE_DIR
+    """List all the available templates.
+    """
+    return os.path.lsdir(config.VAGRANT_TEMPLATE_DIR)
