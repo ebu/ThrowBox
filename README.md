@@ -1,5 +1,5 @@
 A distributed, virtualized, shell script runner. Has the side effect to be a test_runner.
-This software is in dev.
+This software is in dev status.
 
 Dependencies
 ============
