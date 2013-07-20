@@ -79,7 +79,11 @@ class GenericBox(object):
         """Start the vagrant box.
         """
         self.vagrant_slave.up()
-        self.wait_up(self)
+        self.wait_up()
+        env.hosts = [self.vagrant_slave.user_hostname_port()]
+        print env.hosts
+        env.key_filename = self.vagrant_slave.keyfile()
+
 
     def wait_up(self):
         """wait for the vm to be up, and the ssh to be accessible
@@ -90,18 +94,10 @@ class GenericBox(object):
             sleep(1)
         else:
             raise StartFailedError()
-
+        
         env.hosts = [self.vagrant_slave.user_hostname_port()]
         env.key_filename = self.vagrant_slave.keyfile()
-        for _ in range(config.MAX_RETRY_SSH):
-            """waiting for the ssh to be up """
-            try:
-                run("")
-                break
-            except SSHException:
-                pass
-        else:
-            raise StartFailedError()
+        return
 
     def test(self):
         """Run each line of self.tests.
