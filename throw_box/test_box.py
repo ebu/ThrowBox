@@ -38,6 +38,7 @@ class GenericBox(object):
         self.test_results = []
         self.directory = tempfile.mkdtemp()
         self.set_vagrant_env(template)
+        self.output = []
         self.vagrant_slave = vagrant.Vagrant()
 
     def set_vagrant_env(self, vagrant_template):
@@ -84,7 +85,7 @@ class GenericBox(object):
             for test in tests:
                 result = test_runner(test)
                 self.test_results.append(result)
-
+        self.output.append([])
         execute(run_tests, self.test_scripts)
 
     def setup(self):
@@ -97,6 +98,7 @@ class GenericBox(object):
             """
             for command in commands:
                 self.run(command)
+        self.output.append([])
         execute(run_pre, self.setup_scripts)
 
     def deploy(self):
@@ -109,13 +111,18 @@ class GenericBox(object):
             """
             for command in commands:
                 self.run(command, warn_only=True)
+        self.output.append([])
+        run_post(self.deploy_scripts)
 
-    def run(self, *args, **kwargs):
+    def run(self, command, *args, **kwargs):
         """a run wrapper that append the output of the command 
         and the command to the self.output list
         @param command:
         """
-        return run(*args, **kwargs)
+        ret = run(command, *args, **kwargs)
+        self.output[-1].append(command)
+        self.output[-1].append(ret.split())
+        return ret
 
     def destroy(self):
         """Destroy the box
