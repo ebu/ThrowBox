@@ -1,0 +1,15 @@
+import sys
+import json
+
+import box_thrower
+
+
+if __name__ == '__main__':
+    with open(sys.argv[1]) as f:
+        conf = json.load(f)
+    b = box_thrower.GenericBox(**conf)
+    b.up()
+    b.setup()
+    b.test()
+    b.deploy()
+    b.destroy
