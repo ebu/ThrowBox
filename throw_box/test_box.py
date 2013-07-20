@@ -1,4 +1,5 @@
 import logging
+from paramiko.ssh_exception import SSHException
 import shutil
 from time import sleep
 from fabric.api import run, env, task, execute
@@ -8,6 +9,26 @@ import vagrant
 import config
 
 from collections import namedtuple
+
+
+class InvalidTemplate(ValueError):
+    """Error throwned when a template that doesn't exist
+    was specified
+    """
+    pass
+
+
+class SetupScriptFailed(Exception):
+    """Error throwned when the setup script failed
+    """
+    pass
+
+
+class StartFailedError(Exception):
+    """Error throwned when the startup of the machine failed
+    """
+    pass
+
 
 """Tuple that host the result of a single test run.
 """
@@ -36,10 +57,11 @@ class GenericBox(object):
         self.test_scripts = test_scripts
         self.deploy_scripts = deploy_scripts
         self.test_results = []
+        self.output = []
         self.directory = tempfile.mkdtemp()
         self.set_vagrant_env(template)
-        self.output = []
         self.vagrant_slave = vagrant.Vagrant()
+        self.__up()
 
     def set_vagrant_env(self, vagrant_template):
         """Set the vagrant file
@@ -47,22 +69,39 @@ class GenericBox(object):
         """
         templates = os.listdir(config.VAGRANT_TEMPLATE_DIR)
         if vagrant_template not in templates:
-            print("invalid template")
-            exit(1)
+            raise InvalidTemplate()
         abs_template_file = os.path.join(config.VAGRANT_TEMPLATE_DIR, vagrant_template)
         abs_vagrant_file = os.path.join(self.directory, "Vagrantfile")
         shutil.copyfile(abs_template_file, abs_vagrant_file)
         os.chdir(self.directory)
 
-    def up(self):
+    def __up(self):
         """Start the vagrant box.
         """
         self.vagrant_slave.up()
-        while self.vagrant_slave.status() != 'running':
-            print(self.vagrant_slave.status())
+        self.wait_up(self)
+
+    def wait_up(self):
+        """wait for the vm to be up, and the ssh to be accessible
+        """
+        for _ in range(config.MAX_RETRY_STATUS):
+            if self.vagrant_slave.status() != 'starting':
+                break
             sleep(1)
+        else:
+            raise StartFailedError()
+
         env.hosts = [self.vagrant_slave.user_hostname_port()]
         env.key_filename = self.vagrant_slave.keyfile()
+        for _ in range(config.MAX_RETRY_SSH):
+            """waiting for the ssh to be up """
+            try:
+                run("")
+                break
+            except SSHException:
+                pass
+        else:
+            raise StartFailedError()
 
     def test(self):
         """Run each line of self.tests.
@@ -97,7 +136,10 @@ class GenericBox(object):
             @param commands: A list of string 
             """
             for command in commands:
-                self.run(command)
+                ret = self.run(command, warn_only=True)
+                if ret.return_code:
+                    raise SetupFailedError()
+
         self.output.append([])
         execute(run_pre, self.setup_scripts)
 
@@ -121,14 +163,18 @@ class GenericBox(object):
         """
         ret = run(command, *args, **kwargs)
         self.output[-1].append(command)
-        self.output[-1].append(ret.split())
+        out_line = [out_line for out_line in ret.split() if out_line] 
+        self.output[-1] += out_line
         return ret
 
-    def destroy(self):
+    def __del__(self):
         """Destroy the box
         """
         try:
             self.vagrant_slave.destroy()
+        except AttributeError:
+            #if we have a vagrant box setup
+            pass
         except Exception as e:
             #pretty bad thing just append
             logging.error("Issue while destroying the box, {!s}".format(e))
