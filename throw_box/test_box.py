@@ -86,7 +86,7 @@ class GenericBox(object):
                 result = test_runner(test)
                 self.test_results.append(result)
 
-        execute(run_tests, self.tests)
+        execute(run_tests, self.test_scripts)
 
     def setup(self):
         """Run the setup scripts, abort if any error occurs
@@ -98,7 +98,7 @@ class GenericBox(object):
             """
             for command in commands:
                 self.run(command)
-        execute(run_pre, self.pre)
+        execute(run_pre, self.setup_scripts)
 
     def deploy(self):
         """Run the post test scripts, continue on error
@@ -111,14 +111,12 @@ class GenericBox(object):
             for command in commands:
                 self.run(command, warn_only=True)
 
-    def run(*args, **kwargs):
+    def run(self, *args, **kwargs):
         """a run wrapper that append the output of the command 
         and the command to the self.output list
         @param command:
         """
-        #stdout = StringIO()
-        #stderr = StringIO()
-        run(*args, **kwargs)
+        return run(*args, **kwargs)
 
     def destroy(self):
         """Destroy the box
