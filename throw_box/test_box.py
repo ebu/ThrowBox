@@ -62,7 +62,7 @@ class GenericBox(object):
         """Start the vagrant box.
         """
         self.vagrant_slave.up()
-        while self.vagrant_slave.status() != 'running':
+        while self.vagrant_slave.status() == 'starting':
             "waiting for the vagrant box to boot"
             sleep(1)
         env.hosts = [self.vagrant_slave.user_hostname_port()]
