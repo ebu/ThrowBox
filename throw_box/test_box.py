@@ -124,7 +124,8 @@ class GenericBox(object):
         """
         ret = run(command, *args, **kwargs)
         self.output[-1].append(command)
-        self.output[-1].append(ret.split())
+        out_line = [out_line for out_line in ret.split() if out_line] 
+        self.output[-1].extends(out_line)
         return ret
 
     def destroy(self):
