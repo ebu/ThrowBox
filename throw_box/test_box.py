@@ -129,11 +129,6 @@ class GenericBox(object):
         return ret
 
     def __del__(self):
-        """Deststructor function
-        """
-        self.destroy()
-
-    def destroy(self):
         """Destroy the box
         """
         try:
