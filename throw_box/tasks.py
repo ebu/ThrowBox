@@ -34,7 +34,7 @@ def test_job(pre, test, post, template, github_url):
         state('DESTROYING')
         b.destroy()
     state('FINISHED')
-    return b.test_results
+    return (b.test_results, b.output)
 
 def state(state, key='job_state'):
     """Report a finer state of the job to the celery caller.
