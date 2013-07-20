@@ -1,16 +1,18 @@
 A distributed, virtualized, shell script runner. Has the side effect to be a test_runner.
+It will spawn a vm, run shell script, return the result of the run, and destroy the vm, so 
+you have time  
 This software is in dev status.
 
 Dependencies
 ============
-* (python-vagrant)[https://github.com/todddeluca/python-vagrant]
+* [python-vagrant](https://github.com/todddeluca/python-vagrant)
     Used to start vm, querying the host and the port of the vm
     
 
-* (celery)[https://github.com/celery/celery]
+* [celery](https://github.com/celery/celery)
     Used to remotely start a job
 
-* (fabric)[https://github.com/fabric/fabric]
+* [fabric](https://github.com/fabric/fabric)
     Used to launch scripts on the vm
 
 Install
