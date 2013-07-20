@@ -25,9 +25,11 @@ or using pip.
 
     pip install distribute
 
-Then you will need vagrant to be installed, it should be in your repository if you are on linux
+Then you will need vagrant to be installed, it should be in your repository for example if you use debian:
 
     sudo apt-get install vagrant
+
+If it's not in your repository, you can use the windows url.
 
 Setup on windows
 ================
@@ -36,7 +38,7 @@ if you are using windows, you can install the lastest version using this url:
     http://downloads.vagrantup.com/
 
 You will also need virtualbox installed. You can find virtualbox at this url:
-    
+
     https://www.virtualbox.org/wiki/Downloads
 
 Setup the configuration
