@@ -16,7 +16,7 @@ def test_job(pre, test, post, template, github_url):
     * DEPLOYING: the post script are running one the vm
     * DESTROYING: the vm is stopping.
     * DESTROYING: the vm is stopping.
-    * FINISHEd: the vm is stopped and the job is finished
+    * FINISHED: the vm is stopped and the job is finished
     """
     state('STARTING')
     b = GenericBox(pre, test, post, github_url, template)

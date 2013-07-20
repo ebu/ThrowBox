@@ -32,7 +32,7 @@ class StartFailedError(Exception):
 
 """Tuple that host the result of a single test run.
 """
-TestResult = namedtuple("TestResult", ['test', 'exit_code', 'success'])
+TestResult = namedtuple("TestResult", ['test', 'exit_code', 'passed'])
 
 class GenericBox(object):
     """This class is a abstract box. It handles:
@@ -94,10 +94,9 @@ class GenericBox(object):
             sleep(1)
         else:
             raise StartFailedError()
-        
-        env.hosts = [self.vagrant_slave.user_hostname_port()]
+
+        env.host = self.vagrant_slave.user_hostname_port()
         env.key_filename = self.vagrant_slave.keyfile()
-        return
 
     def test(self):
         """Run each line of self.tests.
@@ -133,8 +132,8 @@ class GenericBox(object):
             """
             for command in commands:
                 ret = self.run(command, warn_only=True)
-                if ret.return_code:
-                    raise SetupFailedError()
+                if ret.failed:
+                    return False
 
         self.output.append([])
         execute(run_pre, self.setup_scripts)
@@ -157,7 +156,12 @@ class GenericBox(object):
         and the command to the self.output list
         @param command:
         """
-        ret = run(command, *args, **kwargs)
+        try:
+            ret = run(command, *args, **kwargs)
+        except SSHException as e:
+            print(e)
+            sleep(1)
+            return self.run(command, *args, **kwargs)
         self.output[-1].append(command)
         out_line = [out_line for out_line in ret.split() if out_line] 
         self.output[-1] += out_line
