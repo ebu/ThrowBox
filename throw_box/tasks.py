@@ -18,10 +18,9 @@ def test_job(pre, test, post, template, github_url):
     * DESTROYING: the vm is stopping.
     * FINISHEd: the vm is stopped and the job is finished
     """
+    state('STARTING')
     b = GenericBox(pre, test, post, github_url, template)
     try:
-        state('STARTING')
-        b.up()
         state('SETUPING')
         b.setup()
         state('TESTING')
@@ -31,10 +30,11 @@ def test_job(pre, test, post, template, github_url):
     except Exception as e:
         print(e)
     finally:
+        result = (b.test_results, b.output)
         state('DESTROYING')
-        b.destroy()
+        del(b)
     state('FINISHED')
-    return (b.test_results, b.output)
+    return result
 
 def state(state, key='job_state'):
     """Report a finer state of the job to the celery caller.

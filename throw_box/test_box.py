@@ -44,6 +44,7 @@ class GenericBox(object):
         self.set_vagrant_env(template)
         self.output = []
         self.vagrant_slave = vagrant.Vagrant()
+        self.__up()
 
     def set_vagrant_env(self, vagrant_template):
         """Set the vagrant file
@@ -57,12 +58,12 @@ class GenericBox(object):
         shutil.copyfile(abs_template_file, abs_vagrant_file)
         os.chdir(self.directory)
 
-    def up(self):
+    def __up(self):
         """Start the vagrant box.
         """
         self.vagrant_slave.up()
         while self.vagrant_slave.status() != 'running':
-            print(self.vagrant_slave.status())
+            "waiting for the vagrant box to boot"
             sleep(1)
         env.hosts = [self.vagrant_slave.user_hostname_port()]
         env.key_filename = self.vagrant_slave.keyfile()
@@ -125,7 +126,7 @@ class GenericBox(object):
         ret = run(command, *args, **kwargs)
         self.output[-1].append(command)
         out_line = [out_line for out_line in ret.split() if out_line] 
-        self.output[-1].extends(out_line)
+        self.output[-1] += out_line
         return ret
 
     def __del__(self):
@@ -133,6 +134,9 @@ class GenericBox(object):
         """
         try:
             self.vagrant_slave.destroy()
+        except AttributeError:
+            #if we have a vagrant box setup
+            pass
         except Exception as e:
             #pretty bad thing just append
             logging.error("Issue while destroying the box, {!s}".format(e))
