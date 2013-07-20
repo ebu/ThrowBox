@@ -9,6 +9,10 @@ import config
 
 from collections import namedtuple
 
+class InvalidTemplate(ValueError):
+    pass
+
+
 """Tuple that host the result of a single test run.
 """
 TestResult = namedtuple("TestResult", ['test', 'exit_code', 'success'])
@@ -47,8 +51,7 @@ class GenericBox(object):
         """
         templates = os.listdir(config.VAGRANT_TEMPLATE_DIR)
         if vagrant_template not in templates:
-            print("invalid template")
-            exit(1)
+            raise InvalidTemplate()
         abs_template_file = os.path.join(config.VAGRANT_TEMPLATE_DIR, vagrant_template)
         abs_vagrant_file = os.path.join(self.directory, "Vagrantfile")
         shutil.copyfile(abs_template_file, abs_vagrant_file)
