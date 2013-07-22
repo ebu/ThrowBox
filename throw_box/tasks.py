@@ -19,20 +19,21 @@ def test_job(pre, test, post, template, github_url):
     * FINISHED: the vm is stopped and the job is finished
     """
     state('STARTING')
-    b = GenericBox(pre, test, post, github_url, template)
+    box = GenericBox(pre, test, post, github_url, template)
     try:
         state('SETUPING')
-        b.setup()
+        box.setup()
         state('TESTING')
-        b.test()
+        box.test()
         state('DEPLOYING')
-        b.deploy()
+        box.deploy()
     except Exception as e:
         print(e)
     finally:
-        result = (b.test_results, b.output)
+        result = ResultSet()
+        result = {'result':box.test_results,'output':box.output}
         state('DESTROYING')
-        del(b)
+        del(box)
     state('FINISHED')
     return result
 
