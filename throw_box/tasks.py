@@ -1,11 +1,11 @@
 from test_box import GenericBox
 import os
-from celery import Celery, current_task
+from celery import Celery, current_task, ResultSet
 import config
 
 VAGRANT_FILENAME = "Vagrantfile"
 
-celery = Celery('tasks', broker='amqp://guest@localhost//')
+celery = Celery('tasks') 
 
 @celery.task
 def test_job(pre, test, post, template, github_url):
