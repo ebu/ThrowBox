@@ -1,6 +1,6 @@
 """The directory hosting all the vagrant files
 Their names are used as template name. cf. GenericBoxes """
-VAGRANT_TEMPLATE_DIR = '/tmp/vagrant'
+VAGRANT_TEMPLATE_DIR = 'base_template'
 
 """The maximum number of retry to connect to the vm 
 trough ssh when the machine is up

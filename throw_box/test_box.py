@@ -1,4 +1,5 @@
 import logging
+from multiprocessing import Lock
 from paramiko.ssh_exception import SSHException
 import shutil
 from time import sleep
@@ -32,7 +33,7 @@ class StartFailedError(Exception):
 
 """Tuple that host the result of a single test run.
 """
-TestResult = namedtuple("TestResult", ['test', 'exit_code', 'success'])
+TestResult = namedtuple("TestResult", ['test', 'exit_code', 'passed'])
 
 class GenericBox(object):
     """This class is a abstract box. It handles:
@@ -60,8 +61,7 @@ class GenericBox(object):
         self.output = []
         self.directory = tempfile.mkdtemp()
         self.set_vagrant_env(template)
-        self.vagrant_slave = vagrant.Vagrant()
-        self.__up()
+        self.vagrant_slave = vagrant.Vagrant(self.directory)
 
     def set_vagrant_env(self, vagrant_template):
         """Set the vagrant file
@@ -73,15 +73,13 @@ class GenericBox(object):
         abs_template_file = os.path.join(config.VAGRANT_TEMPLATE_DIR, vagrant_template)
         abs_vagrant_file = os.path.join(self.directory, "Vagrantfile")
         shutil.copyfile(abs_template_file, abs_vagrant_file)
-        os.chdir(self.directory)
 
-    def __up(self):
+    def up(self):
         """Start the vagrant box.
         """
         self.vagrant_slave.up()
         self.wait_up()
         env.hosts = [self.vagrant_slave.user_hostname_port()]
-        print env.hosts
         env.key_filename = self.vagrant_slave.keyfile()
 
 
@@ -94,10 +92,9 @@ class GenericBox(object):
             sleep(1)
         else:
             raise StartFailedError()
-        
-        env.hosts = [self.vagrant_slave.user_hostname_port()]
+
+        env.host = self.vagrant_slave.user_hostname_port()
         env.key_filename = self.vagrant_slave.keyfile()
-        return
 
     def test(self):
         """Run each line of self.tests.
@@ -133,8 +130,8 @@ class GenericBox(object):
             """
             for command in commands:
                 ret = self.run(command, warn_only=True)
-                if ret.return_code:
-                    raise SetupFailedError()
+                if ret.failed:
+                    return False
 
         self.output.append([])
         execute(run_pre, self.setup_scripts)
@@ -157,7 +154,12 @@ class GenericBox(object):
         and the command to the self.output list
         @param command:
         """
-        ret = run(command, *args, **kwargs)
+        try:
+            ret = run(command, *args, **kwargs)
+        except SSHException as e:
+            print(e)
+            sleep(1)
+            return self.run(command, *args, **kwargs)
         self.output[-1].append(command)
         out_line = [out_line for out_line in ret.split() if out_line] 
         self.output[-1] += out_line
@@ -176,5 +178,15 @@ class GenericBox(object):
             logging.error("Issue while destroying the box, {!s}".format(e))
         finally:
             #remove the directory at any price
-            os.chdir("..")
             shutil.rmtree(self.directory)
+
+class VirtualBox(GenericBox):
+    l = Lock()
+    def up(self):
+        """Start the vagrant box.
+        """
+        with VirtualBox.l:
+            self.vagrant_slave.up()
+        self.wait_up()
+        env.hosts = [self.vagrant_slave.user_hostname_port()]
+        env.key_filename = self.vagrant_slave.keyfile()

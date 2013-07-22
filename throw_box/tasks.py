@@ -1,11 +1,11 @@
-from test_box import GenericBox
+from test_box import VirtualBox
 import os
 from celery import Celery, current_task
 import config
 
 VAGRANT_FILENAME = "Vagrantfile"
 
-celery = Celery('tasks', broker='amqp://guest@localhost//')
+celery = Celery('tasks') 
 
 @celery.task
 def test_job(pre, test, post, template, github_url):
@@ -16,23 +16,24 @@ def test_job(pre, test, post, template, github_url):
     * DEPLOYING: the post script are running one the vm
     * DESTROYING: the vm is stopping.
     * DESTROYING: the vm is stopping.
-    * FINISHEd: the vm is stopped and the job is finished
+    * FINISHED: the vm is stopped and the job is finished
     """
     state('STARTING')
-    b = GenericBox(pre, test, post, github_url, template)
+    box = VirtualBox(pre, test, post, github_url, template)
     try:
+        box.up()
         state('SETUPING')
-        b.setup()
+        box.setup()
         state('TESTING')
-        b.test()
+        box.test()
         state('DEPLOYING')
-        b.deploy()
+        box.deploy()
     except Exception as e:
         print(e)
     finally:
-        result = (b.test_results, b.output)
+        result = {'result':box.test_results,'output':box.output}
         state('DESTROYING')
-        del(b)
+        del(box)
     state('FINISHED')
     return result
 
