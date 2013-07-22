@@ -60,7 +60,7 @@ class GenericBox(object):
         self.output = []
         self.directory = tempfile.mkdtemp()
         self.set_vagrant_env(template)
-        self.vagrant_slave = vagrant.Vagrant()
+        self.vagrant_slave = vagrant.Vagrant(self.directory)
         self.__up()
 
     def set_vagrant_env(self, vagrant_template):
@@ -73,12 +73,11 @@ class GenericBox(object):
         abs_template_file = os.path.join(config.VAGRANT_TEMPLATE_DIR, vagrant_template)
         abs_vagrant_file = os.path.join(self.directory, "Vagrantfile")
         shutil.copyfile(abs_template_file, abs_vagrant_file)
-        os.chdir(self.directory)
 
     def __up(self):
         """Start the vagrant box.
         """
-        self.vagrant_slave.up()
+        self.vagrant_slave.up(parallel=True)
         self.wait_up()
         env.hosts = [self.vagrant_slave.user_hostname_port()]
         print env.hosts
@@ -180,5 +179,4 @@ class GenericBox(object):
             logging.error("Issue while destroying the box, {!s}".format(e))
         finally:
             #remove the directory at any price
-            os.chdir("..")
             shutil.rmtree(self.directory)
