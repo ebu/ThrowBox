@@ -1,6 +1,6 @@
-from test_box import GenericBox
+from test_box import VirtualBox
 import os
-from celery import Celery, current_task, ResultSet
+from celery import Celery, current_task
 import config
 
 VAGRANT_FILENAME = "Vagrantfile"
@@ -19,8 +19,9 @@ def test_job(pre, test, post, template, github_url):
     * FINISHED: the vm is stopped and the job is finished
     """
     state('STARTING')
-    box = GenericBox(pre, test, post, github_url, template)
+    box = VirtualBox(pre, test, post, github_url, template)
     try:
+        box.up()
         state('SETUPING')
         box.setup()
         state('TESTING')
@@ -30,7 +31,6 @@ def test_job(pre, test, post, template, github_url):
     except Exception as e:
         print(e)
     finally:
-        result = ResultSet()
         result = {'result':box.test_results,'output':box.output}
         state('DESTROYING')
         del(box)

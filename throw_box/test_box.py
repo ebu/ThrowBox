@@ -1,4 +1,5 @@
 import logging
+from multiprocessing import Lock
 from paramiko.ssh_exception import SSHException
 import shutil
 from time import sleep
@@ -61,7 +62,6 @@ class GenericBox(object):
         self.directory = tempfile.mkdtemp()
         self.set_vagrant_env(template)
         self.vagrant_slave = vagrant.Vagrant(self.directory)
-        self.__up()
 
     def set_vagrant_env(self, vagrant_template):
         """Set the vagrant file
@@ -74,7 +74,7 @@ class GenericBox(object):
         abs_vagrant_file = os.path.join(self.directory, "Vagrantfile")
         shutil.copyfile(abs_template_file, abs_vagrant_file)
 
-    def __up(self):
+    def up(self):
         """Start the vagrant box.
         """
         self.vagrant_slave.up(parallel=True)
@@ -180,3 +180,12 @@ class GenericBox(object):
         finally:
             #remove the directory at any price
             shutil.rmtree(self.directory)
+
+class VirtualBox(GenericBox):
+    l = Lock()
+    def up(self):
+        """Start the vagrant box.
+        """
+        print("VIRTUALBOX CALLED")
+        with VirtualBox.l:
+            super(VirtualBox, self).up()
