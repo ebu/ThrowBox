@@ -77,10 +77,9 @@ class GenericBox(object):
     def up(self):
         """Start the vagrant box.
         """
-        self.vagrant_slave.up(parallel=True)
+        self.vagrant_slave.up()
         self.wait_up()
         env.hosts = [self.vagrant_slave.user_hostname_port()]
-        print env.hosts
         env.key_filename = self.vagrant_slave.keyfile()
 
 
@@ -186,6 +185,8 @@ class VirtualBox(GenericBox):
     def up(self):
         """Start the vagrant box.
         """
-        print("VIRTUALBOX CALLED")
         with VirtualBox.l:
-            super(VirtualBox, self).up()
+            self.vagrant_slave.up()
+        self.wait_up()
+        env.hosts = [self.vagrant_slave.user_hostname_port()]
+        env.key_filename = self.vagrant_slave.keyfile()
