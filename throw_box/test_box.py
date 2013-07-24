@@ -41,7 +41,7 @@ class GenericBox(object):
     * The run of the scripts in the vm.
     * The teardown of the vm used to run the script.
     """
-    def __init__(self, setup_scripts, test_scripts, deploy_scripts, git_url, template, template_dir=None):
+    def __init__(self, setup_scripts, test_scripts, deploy_scripts, git_url, template, template_dir=None, private_key=None):
         """Construct a new box definition. This method will only create a new
         vagrant environment. All the scripts are list of string, each entry being
         a shell command sh compatible.
@@ -53,8 +53,11 @@ class GenericBox(object):
         @param git_url: The github url of the tested repo. This will be cloned at the beginning 
                            of the script
         @param template: A string matching the template you wanna use cf. set_vagrant_env.
+        @param template_dir: The directory in which the vagrant templates are stored.
+        @private_key the private key used to clone the repo
         """
         self.vagrant_template_dir = template_dir or config.VAGRANT_TEMPLATE_DIR
+        self.private_key = private_key or config.PRIVATE_KEY 
         self.setup_scripts = setup_scripts
         self.test_scripts = test_scripts
         self.deploy_scripts = deploy_scripts
@@ -75,9 +78,20 @@ class GenericBox(object):
         abs_vagrant_file = os.path.join(self.directory, "Vagrantfile")
         shutil.copyfile(abs_template_file, abs_vagrant_file)
 
-    def clone_repo(self):
+    @property
+    def top_commit(self):
+        """Return the sha of the commit
+        """
         with lcd(self.directory):
-            local("git clone {}".format(self.git_url, self.directory))
+            local("git rev-list -n 1 HEAD")
+
+    def clone_repo(self):
+        """clone the repository given by self.git_url at the vagrant root, it will be in /vagrant
+        """
+        with lcd(self.directory):
+            local("ssh-add {}".format(self.private_key))
+            local("git clone {}".format(self.git_url))
+            local("ssh-add -d {}".format(self.private_key))
 
     def up(self):
         """Start the vagrant box.
