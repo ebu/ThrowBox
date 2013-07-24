@@ -3,7 +3,7 @@ from multiprocessing import Lock
 from paramiko.ssh_exception import SSHException
 import shutil
 from time import sleep
-from fabric.api import run, env, task, execute
+from fabric.api import run, env, task, execute, local, lcd
 import tempfile
 import os
 import vagrant
@@ -41,7 +41,7 @@ class GenericBox(object):
     * The run of the scripts in the vm.
     * The teardown of the vm used to run the script.
     """
-    def __init__(self, setup_scripts, test_scripts, deploy_scripts, github_url, template):
+    def __init__(self, setup_scripts, test_scripts, deploy_scripts, git_url, template, template_dir=None):
         """Construct a new box definition. This method will only create a new
         vagrant environment. All the scripts are list of string, each entry being
         a shell command sh compatible.
@@ -50,10 +50,11 @@ class GenericBox(object):
         @param tests: A list of script to run. They act as the test of the softwar
         @param post: A list of script to run after the build is complete. This can be used to
                      distribute or package the software.
-        @param github_url: The github url of the tested repo. This will be cloned at the beginning 
+        @param git_url: The github url of the tested repo. This will be cloned at the beginning 
                            of the script
         @param template: A string matching the template you wanna use cf. set_vagrant_env.
         """
+        self.vagrant_template_dir = template_dir or config.VAGRANT_TEMPLATE_DIR
         self.setup_scripts = setup_scripts
         self.test_scripts = test_scripts
         self.deploy_scripts = deploy_scripts
@@ -73,6 +74,10 @@ class GenericBox(object):
         abs_template_file = os.path.join(config.VAGRANT_TEMPLATE_DIR, vagrant_template)
         abs_vagrant_file = os.path.join(self.directory, "Vagrantfile")
         shutil.copyfile(abs_template_file, abs_vagrant_file)
+
+    def clone_repo(self):
+        with lcd(self.directory):
+            local("git clone {}".format(self.git_url, self.directory))
 
     def up(self):
         """Start the vagrant box.
