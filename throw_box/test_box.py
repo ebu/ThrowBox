@@ -35,6 +35,8 @@ class StartFailedError(Exception):
 """
 TestResult = namedtuple("TestResult", ['test', 'exit_code', 'passed'])
 
+REPO_ROOT = "repo"
+
 class GenericBox(object):
     """This class is a abstract box. It handles:
     * The initialisation of the box
@@ -61,6 +63,7 @@ class GenericBox(object):
         self.setup_scripts = setup_scripts
         self.test_scripts = test_scripts
         self.deploy_scripts = deploy_scripts
+        self.git_url = git_url
         self.test_results = []
         self.output = []
         self.directory = tempfile.mkdtemp()
@@ -83,14 +86,15 @@ class GenericBox(object):
         """Return the sha of the commit
         """
         with lcd(self.directory):
-            local("git rev-list -n 1 HEAD")
+            with lcd(REPO_ROOT):
+                return local("git rev-list -n 1 HEAD")
 
     def clone_repo(self):
         """clone the repository given by self.git_url at the vagrant root, it will be in /vagrant
         """
         with lcd(self.directory):
             local("ssh-add {}".format(self.private_key))
-            local("git clone {}".format(self.git_url))
+            local("git clone {} {}".format(self.git_url, REPO_ROOT))
             local("ssh-add -d {}".format(self.private_key))
 
     def up(self):
