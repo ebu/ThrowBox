@@ -76,7 +76,7 @@ class GenericBox(object):
         """
         templates = os.listdir(config.VAGRANT_TEMPLATE_DIR)
         if vagrant_template not in templates:
-            raise InvalidTemplate()
+            raise InvalidTemplate(vagrant_template)
         abs_template_file = os.path.join(config.VAGRANT_TEMPLATE_DIR, vagrant_template)
         abs_vagrant_file = os.path.join(self.directory, "Vagrantfile")
         shutil.copyfile(abs_template_file, abs_vagrant_file)
@@ -87,7 +87,7 @@ class GenericBox(object):
         """
         with lcd(self.directory):
             with lcd(REPO_ROOT):
-                return local("git rev-list -n 1 HEAD")
+                return local("git rev-list -n 1 HEAD", capture=True)
 
     def clone_repo(self):
         """clone the repository given by self.git_url at the vagrant root, it will be in /vagrant
@@ -115,8 +115,7 @@ class GenericBox(object):
             sleep(1)
         else:
             raise StartFailedError()
-
-        env.host = self.vagrant_slave.user_hostname_port()
+        env.host_string = self.vagrant_slave.user_hostname_port()
         env.key_filename = self.vagrant_slave.keyfile()
 
     def test(self):
@@ -129,7 +128,7 @@ class GenericBox(object):
             @return :A TestResult namedtuple. cf. TestResult
             """
             result = self.run(test, warn_only=True)
-            return TestResult(test, result.return_code, result.succeeded)
+            return TestResult(test, int(result.return_code), bool(result.succeeded))
 
         @task
         def run_tests(tests):
@@ -155,7 +154,6 @@ class GenericBox(object):
                 ret = self.run(command, warn_only=True)
                 if ret.failed:
                     return False
-
         self.output.append([])
         execute(run_pre, self.setup_scripts)
 
@@ -178,7 +176,7 @@ class GenericBox(object):
         @param command:
         """
         try:
-            ret = run(command, *args, **kwargs)
+            ret = run(command.strip(), *args, **kwargs)
         except SSHException as e:
             print(e)
             sleep(1)
@@ -211,5 +209,5 @@ class VirtualBox(GenericBox):
         with VirtualBox.l:
             self.vagrant_slave.up()
         self.wait_up()
-        env.hosts = [self.vagrant_slave.user_hostname_port()]
+        env.host_string = self.vagrant_slave.user_hostname_port()
         env.key_filename = self.vagrant_slave.keyfile()
