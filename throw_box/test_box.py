@@ -177,13 +177,10 @@ class GenericBox(object):
         """
         try:
             ret = run(command.strip(), *args, **kwargs)
-        except SSHException as e:
-            print(e)
-            sleep(1)
-            return self.run(command, *args, **kwargs)
-        self.output[-1].append(command)
-        out_line = [out_line for out_line in ret.split() if out_line] 
-        self.output[-1] += out_line
+        except SSHException:
+            raise
+        self.output[-1] += command
+        self.output[-1] += ret
         return ret
 
     def __del__(self):
