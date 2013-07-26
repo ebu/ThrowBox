@@ -1,4 +1,5 @@
 import logging
+import re
 from multiprocessing import Lock
 from paramiko.ssh_exception import SSHException
 import shutil
@@ -179,8 +180,11 @@ class GenericBox(object):
             ret = run(command.strip(), *args, **kwargs)
         except SSHException:
             raise
-        self.output[-1] += command
-        self.output[-1] += ret
+        out = ret.stdout.replace('\r\r', '\n')
+        out = ret.stdout.replace('\r\n', '\n')
+        out = ret.stdout.replace('\r', '\n')
+        self.output[-1].append(command)
+        self.output[-1].append(out)
         return ret
 
     def __del__(self):
