@@ -83,12 +83,17 @@ class GenericBox(object):
         shutil.copyfile(abs_template_file, abs_vagrant_file)
 
     @property
-    def top_commit(self):
+    def top_commit_sha(self):
         """Return the sha of the commit
         """
         with lcd(self.directory):
             with lcd(REPO_ROOT):
-                return local("git rev-list -n 1 HEAD", capture=True)
+                return local("git rev-list -n 1 HEAD", capture=True).strip()
+
+    def top_commit_comment(self):
+        with lcd(self.directory):
+            with  lcd(REPO_ROOT):
+                return local("git log -n 1 HEAD --pretty=%b", capture=True).strip()
 
     def clone_repo(self):
         """clone the repository given by self.git_url at the vagrant root, it will be in /vagrant
