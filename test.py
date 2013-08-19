@@ -1,13 +1,14 @@
 import os
 from throw_box import test_box
 import unittest
+import re
 
 DEFAULT_TEMPLATE = "ubuntu-12.04"
 
 class TestBoxThrower(unittest.TestCase):
     
     def test_box_test(self):
-        """Test a simple setup output
+        """Test a simple setup script output.
         """
         b = test_box.VirtualBox(["echo bou"], [], [], "", DEFAULT_TEMPLATE)
         b.up()
@@ -25,7 +26,7 @@ class TestBoxThrower(unittest.TestCase):
 
     def test_bad_setup_script(self):
         """Test that a bad setup script raises an error
-        Also test if the  output correspond
+        Also test if the  output stop after the first failing script
         """
         b = test_box.VirtualBox(['true', 'true', 'false', 'echo bou'], [], [], "", DEFAULT_TEMPLATE)
         b.up()
@@ -35,7 +36,8 @@ class TestBoxThrower(unittest.TestCase):
 
 
     def test_test_scripts(self):
-        """
+        """Test if the test scripts return the correct result, test that the test result are correct
+        Test that the return value correspond
         """
         b = test_box.VirtualBox([], ["false", "true", "true"], [], "", DEFAULT_TEMPLATE)
         b.up()
@@ -46,12 +48,13 @@ class TestBoxThrower(unittest.TestCase):
         self.assertEqual(test_result[1].passed, True)
 
     def test_clone_repository(self):
-        """
+        """Test that a clone repository doesn't fail. Test that the sha of the commit, and the comment are extracted.
         """
         b = test_box.VirtualBox([], [], [], "git@github.com:ebu/ThrowBox.git", DEFAULT_TEMPLATE, private_key="~/.ssh/id_rsa")
         b.clone_repo()
         self.assertIn("README.md", os.listdir(os.path.join(b.directory, 'repo')))
         self.assertEqual(len(b.top_commit_sha), 40)
+        self.assertRegexpMatches(b.top_commit_comment, re.compile(".+"))
 
 if __name__ == '__main__':
     unittest.main()
