@@ -88,7 +88,7 @@ class GenericBox(object):
         with lcd(self.directory):
             with lcd(REPO_ROOT):
                 return local("git rev-list -n 1 HEAD", capture=True).strip()
-
+    @property
     def top_commit_comment(self):
         with lcd(self.directory):
             with  lcd(REPO_ROOT):

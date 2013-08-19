@@ -79,7 +79,7 @@ def test_job(setup_scripts, test_scripts, deploy_scripts, github_url, template, 
     state('FINISHED')
     outputs = ["\n".join(o) for o in outputs]
     ret = []
-    ret.append(dict(repo=repo, commit=commit_sha, index=build_index, setup_output=outputs[0], test_output=outputs[1], deploy_output=outputs[2], commit_sha=commit_sha, commit_comment=commit_comment))
+    ret.append(dict(repo=repo, commit_sha=commit_sha, commit_comment=commit_comment, index=build_index, setup_output=outputs[0], test_output=outputs[1], deploy_output=outputs[2]))
     
     for test_result in test_results:
         ret.append(dict(return_code=test_result.exit_code, success=test_result.passed))

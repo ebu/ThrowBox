@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name = 'throwbox',
-    version = '0.0.10',
+    version = '0.0.12',
     description = 'A tiny travis-ci clone with rabbit-mq push support and local run',
     long_description = open('README.md').read(),
     keywords = 'travis ci shell',
