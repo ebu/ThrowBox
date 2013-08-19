@@ -13,23 +13,6 @@ import config
 from collections import namedtuple
 
 
-class InvalidTemplate(ValueError):
-    """Error throwned when a template that doesn't exist
-    was specified
-    """
-    pass
-
-
-class SetupScriptFailed(Exception):
-    """Error throwned when the setup script failed
-    """
-    pass
-
-
-class StartFailedError(Exception):
-    """Error throwned when the startup of the machine failed
-    """
-    pass
 
 
 """Tuple that host the result of a single test run.
@@ -162,6 +145,7 @@ class GenericBox(object):
                     return False
         self.output.append([])
         execute(run_pre, self.setup_scripts)
+        return True
 
     def deploy(self):
         """Run the post test scripts, continue on error
