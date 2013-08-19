@@ -3,7 +3,10 @@ from throw_box import test_box
 from models import TestResult, TestRun, Repo
 import os
 from celery import Celery, current_task
-from django.conf import settings
+try:
+    from django.conf import settings
+except ImportError:
+    import config as settings
 
 """This module is designed to work with django only. you will have issues if you try to use it without
 at least setting this settings:
@@ -15,19 +18,23 @@ at least setting this settings:
 """the celery worker """
 celery = Celery('tasks') 
 
-
-
-@celery.task
-def import_result(test_result):
-    """Import the result into the db.
+class InvalidTemplate(ValueError):
+    """Error throwned when a template that doesn't exist
+    was specified
     """
-    test_run = test_result[0]
-    test_run.save()
-    for test in test_result[1]:
-        test = TestRun(**test)
-        test.save()
-    
+    pass
 
+
+class SetupScriptFailed(Exception):
+    """Error throwned when the setup script failed
+    """
+    pass
+
+
+class StartFailedError(Exception):
+    """Error throwned when the startup of the machine failed
+    """
+    pass
 
 
 @celery.task
@@ -43,16 +50,18 @@ def get_pub_key():
     """
     with open(settings.THROWBOX_PUBKEY_FILE) as f:
         return f.read()
+
+
 @celery.task
 def test_job(setup_scripts, test_scripts, deploy_scripts, github_url, template, repo, build_index):
     """Launch a new test job. It will report a finer state from one of those:
     * INITIALISING: the system is starting
     * CLONING: the repo is being fetched
     * STARTING: the vm is starting.
+    * STARTUP FAILED: the vm couldn't be started, this will be used with a StartFailedError Exception
     * SETUPING: the pre script are running one the vm.
     * TESTING: the pre script are running one the vm.
     * DEPLOYING: the post script are running one the vm.
-    * DESTROYING: the vm is stopping.
     * DESTROYING: the vm is stopping.
     * FINISHED: the vm is stopped and the job is finished.
     """
@@ -62,15 +71,27 @@ def test_job(setup_scripts, test_scripts, deploy_scripts, github_url, template, 
     try:
         state('CLONING')
         box.clone_repo()
+
         state('STARTING')
-        box.up()
+        try:
+            box.up()
+        except Exception, e:
+            state("STARTUP FAILED")
+            raise StartFailedError()
+
         commit_sha = box.top_commit_sha
         commit_comment = box.top_commit_comment
+
         state('SETUPING')
-        box.setup()
+        setup_succeed = box.setup()
+        if not setup_succeed:
+            state('SETUP FAILED')
+            raise SetupScriptFailed()
+
         state('TESTING')
         box.test()
         test_results = box.test_results
+
         state('DEPLOYING')
         box.deploy()
         outputs = box.output
