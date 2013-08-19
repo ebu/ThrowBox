@@ -1,13 +1,14 @@
 #!/bin/env python2
 import sys
-import json
 
 import box_thrower
 
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print("Usage: box_thrower ")
+        print("""Usage: box_thrower script
+                    script: a script to run in the vm
+              """)
         exit(1)
     with open(sys.argv[1]) as f:
         conf = [line.rstrip() for line in f.readlines()]
