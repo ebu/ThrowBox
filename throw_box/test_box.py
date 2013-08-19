@@ -1,5 +1,4 @@
 import logging
-import re
 from multiprocessing import Lock
 from paramiko.ssh_exception import SSHException
 import shutil
@@ -13,6 +12,23 @@ import config
 from collections import namedtuple
 
 
+class InvalidTemplate(ValueError):
+    """Error throwned when a template that doesn't exist
+    was specified
+    """
+    pass
+
+
+class SetupScriptFailed(Exception):
+    """Error throwned when the setup script failed
+    """
+    pass
+
+
+class StartFailedError(Exception):
+    """Error throwned when the startup of the machine failed
+    """
+    pass
 
 
 """Tuple that host the result of a single test run.
@@ -89,10 +105,13 @@ class GenericBox(object):
     def up(self):
         """Start the vagrant box.
         """
-        self.vagrant_slave.up()
-        self.wait_up()
-        env.hosts = [self.vagrant_slave.user_hostname_port()]
-        env.key_filename = self.vagrant_slave.keyfile()
+        try:
+            self.vagrant_slave.up()
+            self.wait_up()
+            env.hosts = [self.vagrant_slave.user_hostname_port()]
+            env.key_filename = self.vagrant_slave.keyfile()
+        except:
+            raise StartFailedError()
 
 
     def wait_up(self):

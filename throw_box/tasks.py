@@ -18,23 +18,6 @@ at least setting this settings:
 """the celery worker """
 celery = Celery('tasks') 
 
-class InvalidTemplate(ValueError):
-    """Error throwned when a template that doesn't exist
-    was specified
-    """
-    pass
-
-
-class SetupScriptFailed(Exception):
-    """Error throwned when the setup script failed
-    """
-    pass
-
-
-class StartFailedError(Exception):
-    """Error throwned when the startup of the machine failed
-    """
-    pass
 
 
 @celery.task
@@ -73,20 +56,13 @@ def test_job(setup_scripts, test_scripts, deploy_scripts, github_url, template, 
         box.clone_repo()
 
         state('STARTING')
-        try:
-            box.up()
-        except Exception, e:
-            state("STARTUP FAILED")
-            raise StartFailedError()
+        box.up()
 
         commit_sha = box.top_commit_sha
         commit_comment = box.top_commit_comment
 
         state('SETUPING')
-        setup_succeed = box.setup()
-        if not setup_succeed:
-            state('SETUP FAILED')
-            raise SetupScriptFailed()
+        box.setup()
 
         state('TESTING')
         box.test()
@@ -99,7 +75,7 @@ def test_job(setup_scripts, test_scripts, deploy_scripts, github_url, template, 
         logger.info(type(box.output))
     except Exception as e:
         logger.error(e)
-        state('')
+        return
     finally:
         state('DESTROYING')
         del(box)
