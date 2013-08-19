@@ -29,8 +29,8 @@ class TestBoxThrower(unittest.TestCase):
         b = test_box.VirtualBox(['true', 'true', 'false', 'echo bou'], [], [], "", DEFAULT_TEMPLATE)
         b.up()
         b.setup()
-        self.assertEqual(b.output, [['true', 'true', 'false']])
-        
+        self.assertEqual(b.output, [['true', '', 'true', '', 'false', '']])
+
 
     def test_test_scripts(self):
         """
@@ -49,7 +49,7 @@ class TestBoxThrower(unittest.TestCase):
         b = test_box.VirtualBox([], [], [], "git@github.com:ebu/ThrowBox.git", DEFAULT_TEMPLATE, private_key="~/.ssh/id_rsa")
         b.clone_repo()
         self.assertIn("README.md", os.listdir(os.path.join(b.directory, 'repo')))
-        self.assertEqual(len(b.top_commit), 40)
+        self.assertEqual(len(b.top_commit_sha), 40)
 
 if __name__ == '__main__':
     unittest.main()
