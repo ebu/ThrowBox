@@ -16,3 +16,6 @@ MAX_RETRY_STATUS = 400
 be up
 """
 RETRY_STATUS_TIME = 1
+
+PRIVATE_KEY = "~/.ssh/id_rsa"
+PUBLIC_KEY = "~/.ssh/id_rsa.pub"
