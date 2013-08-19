@@ -161,7 +161,7 @@ class GenericBox(object):
             for command in commands:
                 ret = self.run(command, warn_only=True)
                 if ret.failed:
-                    return False
+                    raise SetupScriptFailed()
         self.output.append([])
         execute(run_pre, self.setup_scripts)
         return True

@@ -7,7 +7,7 @@ DEFAULT_TEMPLATE = "ubuntu-12.04"
 class TestBoxThrower(unittest.TestCase):
     
     def test_box_test(self):
-        """
+        """Test a simple setup output
         """
         b = test_box.VirtualBox(["echo bou"], [], [], "", DEFAULT_TEMPLATE)
         b.up()
@@ -17,18 +17,20 @@ class TestBoxThrower(unittest.TestCase):
         self.assertEqual(b.output, [["echo bou", "bou"], []])
 
     def test_invalid_template(self):
-        """
+        """Test that an invalid template raises an error
         """
         with self.assertRaises(test_box.InvalidTemplate):
             test_box.VirtualBox([], [], [], "", "merglkjadsf")
 
 
     def test_bad_setup_script(self):
-        """
+        """Test that a bad setup script raises an error
+        Also test if the  output correspond
         """
         b = test_box.VirtualBox(['true', 'true', 'false', 'echo bou'], [], [], "", DEFAULT_TEMPLATE)
         b.up()
-        b.setup()
+        with self.assertRaises(test_box.SetupScriptFailed):
+            b.setup()
         self.assertEqual(b.output, [['true', '', 'true', '', 'false', '']])
 
 
