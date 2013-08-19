@@ -47,16 +47,16 @@ class GenericBox(object):
         """Construct a new box definition. This method will only create a new
         vagrant environment. All the scripts are list of string, each entry being
         a shell command sh compatible.
-        @param pre: A list of script to run before the test scripts are run. Those
+        @param setup_scripts: A list of script to run before the test scripts are run. Those
                     must be shell script, one line per element of the list. cf. run_tests
-        @param tests: A list of script to run. They act as the test of the softwar
-        @param post: A list of script to run after the build is complete. This can be used to
+        @param test_scripts: A list of script to run. They act as the test of the softwar
+        @param deploy_scripts: A list of script to run after the build is complete. This can be used to
                      distribute or package the software.
         @param git_url: The github url of the tested repo. This will be cloned at the beginning 
                            of the script
         @param template: A string matching the template you wanna use cf. set_vagrant_env.
         @param template_dir: The directory in which the vagrant templates are stored.
-        @private_key the private key used to clone the repo
+        @param private_key: the private key used to clone the repo
         """
         self.vagrant_template_dir = template_dir or config.VAGRANT_TEMPLATE_DIR
         self.private_key = private_key or config.PRIVATE_KEY 
