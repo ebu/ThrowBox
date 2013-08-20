@@ -7,7 +7,6 @@ from fabric.api import run, env, task, execute, local, lcd
 import tempfile
 import os
 import vagrant
-import config
 
 from collections import namedtuple
 
@@ -37,6 +36,8 @@ TestResult = namedtuple("TestResult", ['test', 'exit_code', 'passed'])
 
 REPO_ROOT = "repo"
 
+MAX_RETRY_STATUS = 300
+
 class GenericBox(object):
     """This class is a abstract box. It handles:
     * The initialisation of the box
@@ -58,8 +59,8 @@ class GenericBox(object):
         @param template_dir: The directory in which the vagrant templates are stored.
         @param private_key: the private key used to clone the repo
         """
-        self.vagrant_template_dir = template_dir or config.VAGRANT_TEMPLATE_DIR
-        self.private_key = private_key or config.PRIVATE_KEY 
+        self.vagrant_template_dir = template_dir
+        self.private_key = private_key
         self.setup_scripts = setup_scripts
         self.test_scripts = test_scripts
         self.deploy_scripts = deploy_scripts
@@ -74,10 +75,10 @@ class GenericBox(object):
         """Set the vagrant file
         @param vagrant_template: A string matching the name of the vagrant template to use
         """
-        templates = os.listdir(config.VAGRANT_TEMPLATE_DIR)
+        templates = os.listdir(self.vagrant_template_dir)
         if vagrant_template not in templates:
             raise InvalidTemplate(vagrant_template)
-        abs_template_file = os.path.join(config.VAGRANT_TEMPLATE_DIR, vagrant_template)
+        abs_template_file = os.path.join(self.vagrant_template_dir, vagrant_template)
         abs_vagrant_file = os.path.join(self.directory, "Vagrantfile")
         shutil.copyfile(abs_template_file, abs_vagrant_file)
 
@@ -117,7 +118,7 @@ class GenericBox(object):
     def wait_up(self):
         """wait for the vm to be up, and the ssh to be accessible
         """
-        for _ in range(config.MAX_RETRY_STATUS):
+        for _ in range(MAX_RETRY_STATUS):
             if self.vagrant_slave.status() != 'starting':
                 break
             sleep(1)
