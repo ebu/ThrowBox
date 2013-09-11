@@ -99,9 +99,7 @@ class GenericBox(object):
         """clone the repository given by self.git_url at the vagrant root, it will be in /vagrant
         """
         with lcd(self.directory):
-            local("ssh-add {}".format(self.private_key), warn_only=True)
             local("git clone {} {}".format(self.git_url, REPO_ROOT))
-            local("ssh-add -d {}".format(self.private_key), warn_only=True)
 
     def up(self):
         """Start the vagrant box.
