@@ -7,9 +7,17 @@ from fabric.api import run, env, task, execute, local, lcd
 import tempfile
 import os
 import vagrant
+import time
 
 from collections import namedtuple
 
+try:
+    import boto
+except ImportError:
+    BOTO_ACTIVE = True
+else:
+    BOTO_ACTIVE = False
+    
 
 class InvalidTemplate(ValueError):
     """Error throwned when a template that doesn't exist
@@ -219,3 +227,44 @@ class VirtualBox(GenericBox):
         self.wait_up()
         env.host_string = self.vagrant_slave.user_hostname_port()
         env.key_filename = self.vagrant_slave.keyfile()
+
+class Ec2Box(GenericBox):
+    """Interface to an ec2 box
+    """
+    IMAGE = "ami-ce7b6fba"
+    l = Lock()
+    def __init__(self, *args, **kwargs):
+        self.con = boto.conn_to_region()
+        self.instance = None
+        with Ec2Box.l:
+            #check if the security group throwbox is there, else we create it
+            security_groups = self.con.get_all_security_groups()
+            if 'throwbox' not in security_groups:
+                self.security_group = self.con.create_security_group('throwbox', 'throwbox configuration')
+                self.security_group.autorize('tcp', 22, 22, "0.0.0.0/0")
+            else:
+                self.security_group = filter(lambda a:a.name == "throwbox", security_groups)[0]
+        super(GenericBox, self).__init__(*args, **kwargs)
+        self.key_pair = self.conn.create_keypair('mynewkey')
+        self.key_dir = os.path.join(self.directory, "key")
+        self.conn.save(self.key_dir)
+        
+    def up(self):
+        """Start an ec2 instance"""
+        reservation = self.conn.run_instances(Ec2Box.IMAGE, instance_type="m1.micro", security_group=[self.security_group])
+        self.instance = reservation.instances[0]
+
+    @property
+    def __instance_id(self):
+        self.instance.id
+
+    def __del__(self):
+        self.conn.terminate_instance(instance_ids=[self.__instance_id])
+
+    def wait_up(self):
+        """wait for the ec2 instance to be up"""
+        while self.instance.state != 'running':
+            time.sleep(5)
+            self.instance.update()
+        env.host_string = self.instance.ip_address
+        env.key_filename = self.key_dir
