@@ -1,14 +1,18 @@
 A distributed, virtualized, shell script runner. Has the side effect to be a test_runner.
 It will spawn a vm, run shell script, return the result of the run, and destroy the vm, so 
-you have time  
+you have time to do something else in the meantime.
+It can also use amazon or amazon compatible api to spawn the vm.
 This software is in dev status.
+
 
 Dependencies
 ============
 * [python-vagrant](https://github.com/todddeluca/python-vagrant)
     Used to start vm, querying the host and the port of the vm
-    
 
+* [boto](https://github.com/boto/boto)
+    Used to start a ec2 instance and manage it.
+    
 * [celery](https://github.com/celery/celery)
     Used to remotely start a job
 
