@@ -13,7 +13,7 @@ setup(
     maintainer_email = '',
     url = 'https://github.com/ebu/ThrowBox',
     dependency_links = ['http://github.com/todddeluca/python-vagrant/tarball/master#egg=python-vagrant'],
-    install_requires = ['python-vagrant', 'fabric', 'celery'],
+    install_requires = ['python-vagrant', 'fabric', 'celery', 'boto'],
     py_modules = ['throw_box.test_box', 'throw_box.tasks'],
 
     classifiers=[
