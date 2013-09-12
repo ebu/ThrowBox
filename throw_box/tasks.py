@@ -47,13 +47,16 @@ def test_job(setup_scripts, test_scripts, deploy_scripts, github_url, template, 
     * FINISHED: the vm is stopped and the job is finished.
     """
     state('INITIALISING')
-    box = test_box.VirtualBox(setup_scripts, test_scripts, deploy_scripts, github_url, template, template_dir=settings.THROWBOX_TEMPLATE_DIR, private_key=settings.THROWBOX_PRIVKEY_FILE)
+    if settings.THROWBOX_EC2:
+        box = test_box.Ec2Box(setup_scripts, test_scripts, deploy_scripts, github_url, template, template_dir=settings.THROWBOX_TEMPLATE_DIR, private_key=settings.THROWBOX_PRIVKEY_FILE)
+    else:
+        box = test_box.VirtualBox(setup_scripts, test_scripts, deploy_scripts, github_url, template, template_dir=settings.THROWBOX_TEMPLATE_DIR, private_key=settings.THROWBOX_PRIVKEY_FILE)
     try:
-        state('CLONING')
-        box.clone_repo()
-
         state('STARTING')
         box.up()
+
+        state('CLONING')
+        box.clone_repo()
 
         commit_sha = box.top_commit_sha
         commit_comment = box.top_commit_comment
