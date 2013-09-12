@@ -65,7 +65,7 @@ class TestAmazonBox(unittest.TestCase):
             del b
 
     def test_test_run(self):
-            b = test_box.Ec2Box(["echo bou"], ['true'], [], "", DEFAULT_TEMPLATE)
+            b = test_box.Ec2Box(["echo bou"], ['true'], [], "git@github.com:ebu/ThrowBox.git", DEFAULT_TEMPLATE)
             b.up()
             b.wait_up()
             b.setup()

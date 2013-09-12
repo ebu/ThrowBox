@@ -4,20 +4,15 @@ from multiprocessing import Lock
 from paramiko.ssh_exception import SSHException
 import shutil
 from time import sleep
-from fabric.api import run, env, task, execute, local, lcd
+from fabric.api import run, env, task, execute, local, lcd, put
 import tempfile
 import os
 import vagrant
+import boto
 import time
 
 from collections import namedtuple
 
-try:
-    import boto
-except ImportError:
-    BOTO_ACTIVE = True
-else:
-    BOTO_ACTIVE = False
     
 
 class InvalidTemplate(ValueError):
@@ -283,3 +278,8 @@ class Ec2Box(GenericBox):
         env.key_filename = self.priv_key_file
         env.hosts = [self.instance.ip_address]
         env.user = "ubuntu"
+
+    def clone_repo(self):
+        super(Ec2Box, self).clone_repo()
+        repo_path = os.path.join(self.directory, REPO_ROOT)
+        put(repo_path, '.')
