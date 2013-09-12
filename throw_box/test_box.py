@@ -268,8 +268,10 @@ class Ec2Box(GenericBox):
         self.instance.id
 
     def __del__(self):
-        self.instance.terminate()
-        self.key_pair.delete()
+        if self.instance:
+            self.instance.terminate()
+        if self.key_pair:
+            self.key_pair.delete()
         shutil.rmtree(self.directory)
 
     def wait_up(self):
