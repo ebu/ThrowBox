@@ -1,4 +1,5 @@
 import logging
+import hashlib
 from multiprocessing import Lock
 from paramiko.ssh_exception import SSHException
 import shutil
@@ -83,6 +84,8 @@ class GenericBox(object):
         """Set the vagrant file
         @param vagrant_template: A string matching the name of the vagrant template to use
         """
+        if not self.vagrant_template_dir:
+            return 
         templates = os.listdir(self.vagrant_template_dir)
         if vagrant_template not in templates:
             raise InvalidTemplate(vagrant_template)
@@ -231,27 +234,33 @@ class VirtualBox(GenericBox):
 class Ec2Box(GenericBox):
     """Interface to an ec2 box
     """
-    IMAGE = "ami-ce7b6fba"
+    IMAGE = "ami-53b1ff3a"
+
     l = Lock()
     def __init__(self, *args, **kwargs):
-        self.con = boto.conn_to_region()
+        self.con = boto.connect_ec2()
         self.instance = None
         with Ec2Box.l:
             #check if the security group throwbox is there, else we create it
-            security_groups = self.con.get_all_security_groups()
-            if 'throwbox' not in security_groups:
+            try:
+                security_groups = self.con.get_all_security_groups("throwbox")
+            except:
                 self.security_group = self.con.create_security_group('throwbox', 'throwbox configuration')
-                self.security_group.autorize('tcp', 22, 22, "0.0.0.0/0")
+                self.security_group.authorize('tcp', 22, 22, "0.0.0.0/0")
             else:
-                self.security_group = filter(lambda a:a.name == "throwbox", security_groups)[0]
-        super(GenericBox, self).__init__(*args, **kwargs)
-        self.key_pair = self.conn.create_keypair('mynewkey')
+                self.security_group = security_groups[0]
+        super(Ec2Box, self).__init__(*args, **kwargs)
+        self.key_pair = self.con.create_key_pair('throwbox' + hashlib.md5(self.directory).hexdigest())
         self.key_dir = os.path.join(self.directory, "key")
-        self.conn.save(self.key_dir)
+        os.mkdir(self.key_dir)
+        self.key_pair.save(self.key_dir)
+        priv_key_file = filter(lambda a: a.endswith("pem"), os.listdir(self.key_dir))[0]
+        self.priv_key_file = os.path.join(self.key_dir, priv_key_file)
+        
         
     def up(self):
         """Start an ec2 instance"""
-        reservation = self.conn.run_instances(Ec2Box.IMAGE, instance_type="m1.micro", security_group=[self.security_group])
+        reservation = self.con.run_instances(Ec2Box.IMAGE, instance_type="t1.micro", security_groups=[self.security_group.name], key_name=self.key_pair.name)
         self.instance = reservation.instances[0]
 
     @property
@@ -259,12 +268,16 @@ class Ec2Box(GenericBox):
         self.instance.id
 
     def __del__(self):
-        self.conn.terminate_instance(instance_ids=[self.__instance_id])
+        self.instance.terminate()
+        self.key_pair.delete()
+        shutil.rmtree(self.directory)
 
     def wait_up(self):
         """wait for the ec2 instance to be up"""
         while self.instance.state != 'running':
             time.sleep(5)
             self.instance.update()
-        env.host_string = self.instance.ip_address
-        env.key_filename = self.key_dir
+        time.sleep(30)
+        env.key_filename = self.priv_key_file
+        env.hosts = [self.instance.ip_address]
+        env.user = "ubuntu"
