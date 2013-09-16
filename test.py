@@ -47,7 +47,7 @@ class TestBoxThrower(unittest.TestCase):
         test_result = b.test_results
         self.assertEqual(test_result[0].passed, False)
         self.assertEqual(test_result[1].passed, True)
-        self.assertEqual(test_result[1].passed, True)
+        self.assertEqual(test_result[2].passed, True)
 
     def test_clone_repository(self):
         """Test that a clone repository doesn't fail. Test that the sha of the commit, and the comment are extracted.
