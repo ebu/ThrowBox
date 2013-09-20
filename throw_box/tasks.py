@@ -60,6 +60,8 @@ def test_job(setup_scripts, test_scripts, deploy_scripts, github_url, template, 
 
         commit_sha = box.top_commit_sha
         commit_comment = box.top_commit_comment
+        if settings.THROWBOX_EC2:
+            box.wait_up()
 
         state('SETUPING')
         box.setup()
