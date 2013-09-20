@@ -278,6 +278,8 @@ class Ec2Box(GenericBox):
         env.key_filename = self.priv_key_file
         env.hosts = [self.instance.ip_address]
         env.user = "ubuntu"
+        env.host_string = env.user + "@" + self.instance.ip_address
+        print env.host_string
 
     def clone_repo(self):
         super(Ec2Box, self).clone_repo()
