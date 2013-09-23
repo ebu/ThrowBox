@@ -48,7 +48,6 @@ def test_job(setup_scripts, test_scripts, deploy_scripts, github_url, template, 
     """
     state('INITIALISING')
     if settings.THROWBOX_EC2:
-        print('yoooooooooo')
         box = test_box.Ec2Box(setup_scripts, test_scripts, deploy_scripts, github_url, template, template_dir=settings.THROWBOX_TEMPLATE_DIR, private_key=settings.THROWBOX_PRIVKEY_FILE)
     else:
         box = test_box.VirtualBox(setup_scripts, test_scripts, deploy_scripts, github_url, template, template_dir=settings.THROWBOX_TEMPLATE_DIR, private_key=settings.THROWBOX_PRIVKEY_FILE)
