@@ -51,8 +51,10 @@ def test_job(setup_scripts, test_scripts, deploy_scripts, github_url, template, 
         box = test_box.Ec2Box(setup_scripts, test_scripts, deploy_scripts, github_url, template, template_dir=settings.THROWBOX_TEMPLATE_DIR, private_key=settings.THROWBOX_PRIVKEY_FILE)
     else:
         box = test_box.VirtualBox(setup_scripts, test_scripts, deploy_scripts, github_url, template, template_dir=settings.THROWBOX_TEMPLATE_DIR, private_key=settings.THROWBOX_PRIVKEY_FILE)
+        logging.info("launching box")
     commit_sha = None
     commit_comment = None
+    test_results = []
     try:
         state('STARTING')
         box.up()
@@ -80,11 +82,20 @@ def test_job(setup_scripts, test_scripts, deploy_scripts, github_url, template, 
     finally:
         outputs = box.output
         for i in range(3 - len(outputs)):
-            outputs += []
+            outputs.append([])
         state('DESTROYING')
-        del(box)
+        box.__del__()
     state('FINISHED')
-    outputs = ["\n".join(o) for o in outputs]
+    def safe_join(a):
+        out = ""
+        for i in a:
+            try:
+                out += i
+                out += '\n'
+            except:
+		logging.error("issue with the encoding, passing by")
+        return out
+    outputs = [safe_join(o) for o in outputs]
     ret = []
     ret.append(dict(repo=repo, commit_sha=commit_sha, commit_comment=commit_comment, index=build_index, setup_output=outputs[0], test_output=outputs[1], deploy_output=outputs[2]))
     
