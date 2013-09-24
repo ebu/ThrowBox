@@ -51,6 +51,8 @@ def test_job(setup_scripts, test_scripts, deploy_scripts, github_url, template, 
         box = test_box.Ec2Box(setup_scripts, test_scripts, deploy_scripts, github_url, template, template_dir=settings.THROWBOX_TEMPLATE_DIR, private_key=settings.THROWBOX_PRIVKEY_FILE)
     else:
         box = test_box.VirtualBox(setup_scripts, test_scripts, deploy_scripts, github_url, template, template_dir=settings.THROWBOX_TEMPLATE_DIR, private_key=settings.THROWBOX_PRIVKEY_FILE)
+    commit_sha = None
+    commit_comment = None
     try:
         state('STARTING')
         box.up()
@@ -72,13 +74,13 @@ def test_job(setup_scripts, test_scripts, deploy_scripts, github_url, template, 
 
         state('DEPLOYING')
         box.deploy()
-        outputs = box.output
-        logging.info(box.output[0])
-        logging.info(type(box.output))
     except Exception as e:
+        logging.error("issue in the test" + str(e))
         logging.error(e)
-        return
     finally:
+        outputs = box.output
+        for i in range(3 - len(outputs)):
+            outputs += []
         state('DESTROYING')
         del(box)
     state('FINISHED')
