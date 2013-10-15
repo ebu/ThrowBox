@@ -1,16 +1,24 @@
 #!/bin/env python2
+import os
 import sys
+import argparse
 
 import box_thrower
 
+def get_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('script_file', help="a script to run in the vm")
+    return parser
+
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("""Usage: box_thrower script
-                    script: a script to run in the vm
-              """)
-        exit(1)
-    with open(sys.argv[1]) as f:
+    parser = get_parser()
+    parser.parse_arguments(sys.argv[1:])
+    if not os.path.exists(parser.script_file):
+        sys.stderr.write("Cannot find file {!s}\n".format(parser.script_file))
+        exit(2)
+
+    with open(parser.script_file) as f:
         conf = [line.rstrip() for line in f.readlines()]
     b = box_thrower.GenericBox(conf, [], [], "", "ubuntu-12.04", "base_template")
     b.up()
