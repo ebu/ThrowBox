@@ -86,16 +86,6 @@ def test_job(setup_scripts, test_scripts, deploy_scripts, github_url, template, 
         state('DESTROYING')
         box.__del__()
     state('FINISHED')
-    def safe_join(a):
-        out = ""
-        for i in a:
-            try:
-                out += i
-                out += '\n'
-            except:
-		logging.error("issue with the encoding, passing by")
-        return out
-    outputs = [safe_join(o) for o in outputs]
     ret = []
     ret.append(dict(repo=repo, commit_sha=commit_sha, commit_comment=commit_comment, index=build_index, setup_output=outputs[0], test_output=outputs[1], deploy_output=outputs[2]))
     
