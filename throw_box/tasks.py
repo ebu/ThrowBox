@@ -6,7 +6,7 @@ from celery import current_task
 try:
     from django.conf import settings
 except ImportError:
-    import config as settings
+    import throw_box.config as settings
 
 """This module is designed to work with django only. you will have issues if you try to use it without
 at least setting this settings:
