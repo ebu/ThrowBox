@@ -5,6 +5,8 @@ import logging
 from celery import current_task
 try:
     from django.conf import settings
+    if not settings.configured:
+        raise ImportError
 except ImportError:
     import throw_box.config as settings
 
@@ -16,13 +18,14 @@ at least setting this settings:
 """
 
 
-
-
 @task
-def list_box():
-    """List all the available templates.
+def list_box(vagrant=False):
+    """List all the available templates for vagrant or list the box on ec2.
     """
-    return os.path.lsdir(settings.THROWBOX_PUBKEY_FILE)
+    if vagrant:
+        return os.path.lsdir(settings.THROWBOX_TEMPLATE_DIR)
+    else:
+        return []
 
 
 @task
@@ -48,10 +51,13 @@ def test_job(setup_scripts, test_scripts, deploy_scripts, github_url, template, 
     """
     state('INITIALISING')
     if settings.THROWBOX_EC2:
-        box = test_box.Ec2Box(setup_scripts, test_scripts, deploy_scripts, github_url, template, template_dir=settings.THROWBOX_TEMPLATE_DIR, private_key=settings.THROWBOX_PRIVKEY_FILE)
+        box = test_box.Ec2Box(setup_scripts, test_scripts, deploy_scripts, template)
     else:
-        box = test_box.VirtualBox(setup_scripts, test_scripts, deploy_scripts, github_url, template, template_dir=settings.THROWBOX_TEMPLATE_DIR, private_key=settings.THROWBOX_PRIVKEY_FILE)
+        box = test_box.VirtualBox(setup_scripts, test_scripts, deploy_scripts, template)
+        box.template_dir = settings.THROWBOX_TEMPLATE_DIR
         logging.info("launching box")
+    box.git_url =  github_url
+    box.priv_key_file = settings.THROWBOX_PRIVKEY_FILE
     commit_sha = None
     commit_comment = None
     test_results = []

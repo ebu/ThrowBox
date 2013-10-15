@@ -200,14 +200,21 @@ class GenericBox(object):
             #remove the directory at any price
             shutil.rmtree(self.directory)
 
+    @staticmethod
+    def list_template(self):
+        return []
+
 class VirtualBox(GenericBox):
     """VirtualBox Box, simply lock the startup of the box"""
     l = Lock()
     def __init__(self, *args, **kwargs):
         super(VirtualBox, self).__init__(*args, **kwargs)
-        self.vagrant_template_dir = config.VAGRANT_TEMPLATE_DIR
+        self.vagrant_template_dir = config.THROWBOX_TEMPLATE_DIR
         self.set_vagrant_env()
 
+    @staticmethod
+    def list_template(self, dir_path=None):
+        return os.path.lsdir(dir_path or config.THROWBOX_TEMPLATE_DIR)
 
     def up(self):
         """Start the vagrant box.
@@ -246,6 +253,11 @@ class Ec2Box(GenericBox):
 
         self.instance = None
         self.template = "ami-53b1ff3a"
+
+    @staticmethod
+    def list_template(self):
+        con = boto.connect_ec2()
+        return [i.name for i in con.get_all_images()]
 
     def ensure_security_group(self):
         with Ec2Box.l:

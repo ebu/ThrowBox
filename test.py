@@ -1,6 +1,7 @@
 import os
 from throw_box import test_box
-from throw_box import task
+from throw_box import tasks
+from throw_box import config
 import unittest
 import re
 import boto
@@ -60,6 +61,26 @@ class TestBoxThrower(unittest.TestCase):
         self.assertIn("README.md", os.listdir(os.path.join(b.directory, 'repo')))
         self.assertEqual(len(b.top_commit_sha), 40)
         self.assertRegexpMatches(b.top_commit_comment, re.compile(".+"))
+
+
+class TestTask(unittest.TestCase):
+
+    @unittest.skipUnless(os.path.exists(config.THROWBOX_PUBKEY_FILE), "no pubkey file found")
+    def test_listing_keys(self):
+        key = tasks.get_pub_keys()
+        self.assertEqual(key, open(config.THROWBOX_PUBKEY_FILE).read())
+
+    def test_listing_template(self):
+        templates = test_box.Ec2Box.list_template()
+        self.assertGreaterThan(len(templates), 1)
+        self.assertMatches(templates[0], re.compile('ami-[0-9a-f]'))
+        templates = test_box.VirtualBox.list_template()
+        self.assertEqual(templates[0],DEFAULT_TEMPLATE)
+        self.assertEqual(len(templates), 1)
+
+    def test_complete_run(self):
+        task_result = tasks.test_job([],[],[], "", DEFAULT_TEMPLATE, "", 1)
+
 
 class TestAmazonBox(unittest.TestCase):
     @unittest.skip

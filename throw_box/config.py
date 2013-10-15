@@ -17,7 +17,9 @@ be up
 """
 RETRY_STATUS_TIME = 1
 
-PRIVATE_KEY = "~/.ssh/id_rsa"
-PUBLIC_KEY = "~/.ssh/id_rsa.pub"
+THROWBOX_PRIVKEY_FILE = "~/.ssh/id_rsa"
+THROWBOX_PUBKEY_FILE = "~/.ssh/id_rsa.pub"
 
 THROWBOX_EC2 = True
+
+VAGRANT_DEFAULT_TEMPLATE = "ubuntu-12.04"
