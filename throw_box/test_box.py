@@ -10,10 +10,9 @@ import os
 import vagrant
 import boto
 import time
+from throw_box import config
 
 from collections import namedtuple
-
-    
 
 class InvalidTemplate(ValueError):
     """Error throwned when a template that doesn't exist
@@ -48,9 +47,12 @@ class GenericBox(object):
     * The run of the scripts in the vm.
     * The teardown of the vm used to run the script.
     """
-    def __init__(self, setup_scripts, test_scripts, deploy_scripts, git_url, template, template_dir=None, private_key=None):
-        """Construct a new box definition. This method will only create a new
-        vagrant environment. All the scripts are list of string, each entry being
+    def setup_git_url(self, git_url):
+        self.git_url = git_url
+
+    def __init__(self, setup_scripts, test_scripts, deploy_scripts, template):
+        """Construct a new box definition. 
+        All the scripts are list of string, each entry being
         a shell command sh compatible.
         @param setup_scripts: A list of script to run before the test scripts are run. Those
                     must be shell script, one line per element of the list. cf. run_tests
@@ -63,30 +65,15 @@ class GenericBox(object):
         @param template_dir: The directory in which the vagrant templates are stored.
         @param private_key: the private key used to clone the repo
         """
-        self.vagrant_template_dir = template_dir
-        self.private_key = private_key
         self.setup_scripts = setup_scripts
         self.test_scripts = test_scripts
         self.deploy_scripts = deploy_scripts
-        self.git_url = git_url
         self.test_results = []
         self.output = []
         self.directory = tempfile.mkdtemp()
-        self.set_vagrant_env(template)
         self.vagrant_slave = vagrant.Vagrant(self.directory)
+        self.template = template
 
-    def set_vagrant_env(self, vagrant_template):
-        """Set the vagrant file
-        @param vagrant_template: A string matching the name of the vagrant template to use
-        """
-        if not self.vagrant_template_dir:
-            return 
-        templates = os.listdir(self.vagrant_template_dir)
-        if vagrant_template not in templates:
-            raise InvalidTemplate(vagrant_template)
-        abs_template_file = os.path.join(self.vagrant_template_dir, vagrant_template)
-        abs_vagrant_file = os.path.join(self.directory, "Vagrantfile")
-        shutil.copyfile(abs_template_file, abs_vagrant_file)
 
     @property
     def top_commit_sha(self):
@@ -99,7 +86,7 @@ class GenericBox(object):
     def top_commit_comment(self):
         with lcd(self.directory):
             with  lcd(REPO_ROOT):
-                return local("git log -n 1 HEAD --pretty=%b", capture=True).strip()
+                return local("git log -n 1 HEAD --pretty=%s", capture=True).strip()
 
     def clone_repo(self):
         """clone the repository given by self.git_url at the vagrant root, it will be in /vagrant
@@ -196,13 +183,11 @@ class GenericBox(object):
         out = ret.stdout.replace('\r\r', '\n')
         out = ret.stdout.replace('\r\n', '\n')
         out = ret.stdout.replace('\r', '\n')
-        self.output[-1].append(command)
-        self.output[-1].append(out)
+        self.output[-1].append((command, out, ))
         return ret
 
     def __del__(self):
-        """Destroy the box
-        """
+        """Destroy the box"""
         try:
             self.vagrant_slave.destroy()
         except AttributeError:
@@ -216,7 +201,14 @@ class GenericBox(object):
             shutil.rmtree(self.directory)
 
 class VirtualBox(GenericBox):
+    """VirtualBox Box, simply lock the startup of the box"""
     l = Lock()
+    def __init__(self, *args, **kwargs):
+        super(VirtualBox, self).__init__(*args, **kwargs)
+        self.vagrant_template_dir = config.VAGRANT_TEMPLATE_DIR
+        self.set_vagrant_env()
+
+
     def up(self):
         """Start the vagrant box.
         """
@@ -226,15 +218,36 @@ class VirtualBox(GenericBox):
         env.host_string = self.vagrant_slave.user_hostname_port()
         env.key_filename = self.vagrant_slave.keyfile()
 
+    def set_vagrant_env(self):
+        """Set the vagrant file
+        @param vagrant_template: A string matching the name of the vagrant template to use
+        """
+        templates = os.listdir(self.vagrant_template_dir)
+        if self.template not in templates:
+            raise InvalidTemplate("Template '{!s}' cannot be found".format(self.template))
+        abs_template_file = os.path.join(self.vagrant_template_dir, self.template)
+        abs_vagrant_file = os.path.join(self.directory, "Vagrantfile")
+        shutil.copyfile(abs_template_file, abs_vagrant_file)
+
 class Ec2Box(GenericBox):
     """Interface to an ec2 box
     """
-    IMAGE = "ami-53b1ff3a"
 
     l = Lock()
     def __init__(self, *args, **kwargs):
+        super(Ec2Box, self).__init__(*args, **kwargs)
         self.con = boto.connect_ec2()
+        self.key_pair = self.con.create_key_pair('throwbox' + hashlib.md5(self.directory).hexdigest())
+        self.key_dir = os.path.join(self.directory, "key")
+        os.mkdir(self.key_dir)
+        self.key_pair.save(self.key_dir)
+        priv_key_file = filter(lambda a: a.endswith("pem"), os.listdir(self.key_dir))[0]
+        self.priv_key_file = os.path.join(self.key_dir, priv_key_file)
+
         self.instance = None
+        self.template = "ami-53b1ff3a"
+
+    def ensure_security_group(self):
         with Ec2Box.l:
             #check if the security group throwbox is there, else we create it
             try:
@@ -244,18 +257,11 @@ class Ec2Box(GenericBox):
                 self.security_group.authorize('tcp', 22, 22, "0.0.0.0/0")
             else:
                 self.security_group = security_groups[0]
-        super(Ec2Box, self).__init__(*args, **kwargs)
-        self.key_pair = self.con.create_key_pair('throwbox' + hashlib.md5(self.directory).hexdigest())
-        self.key_dir = os.path.join(self.directory, "key")
-        os.mkdir(self.key_dir)
-        self.key_pair.save(self.key_dir)
-        priv_key_file = filter(lambda a: a.endswith("pem"), os.listdir(self.key_dir))[0]
-        self.priv_key_file = os.path.join(self.key_dir, priv_key_file)
-        
-        
+
+
     def up(self):
         """Start an ec2 instance"""
-        reservation = self.con.run_instances(Ec2Box.IMAGE, instance_type="t1.micro", security_groups=[self.security_group.name], key_name=self.key_pair.name)
+        reservation = self.con.run_instances(self.template, instance_type="t1.micro", security_groups=[self.security_group.name], key_name=self.key_pair.name)
         self.instance = reservation.instances[0]
 
     @property
